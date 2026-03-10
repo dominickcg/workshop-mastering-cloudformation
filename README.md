@@ -58,10 +58,12 @@ aws sts get-caller-identity
 ## Estructura del Repositorio
 
 ```
-workshop-mastering-cloudformation/
+.
 ├── README.md                          # Este archivo
 ├── TROUBLESHOOTING.md                 # Guía de solución de problemas
 ├── LIMPIEZA.md                        # Instrucciones de limpieza post-workshop
+├── CONTRIBUTING.md                    # Guía de contribución
+├── .gitignore                         # Archivos excluidos del repositorio
 ├── lab-1-stack-refactoring/           # Laboratorio 1: Stack Refactoring
 ├── modulo-2/                          # Laboratorio 2: SafeDeploy Hooks
 └── modulo-3/                          # Laboratorio 3: Validation & Troubleshooting
@@ -78,7 +80,7 @@ workshop-mastering-cloudformation/
 
 ```bash
 git clone <url-del-repositorio>
-cd workshop-mastering-cloudformation
+cd cloudformation-workshop
 ```
 
 ### Instalar Dependencias de CDK

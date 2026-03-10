@@ -5,10 +5,11 @@
 Este repositorio contiene materiales de laboratorio para el workshop "Mastering CloudFormation" del Team Technology de Amber.
 
 ```
-workshop-mastering-cloudformation/
+.
 ├── README.md                          # Documentación principal
 ├── TROUBLESHOOTING.md                 # Guía de solución de problemas
 ├── LIMPIEZA.md                        # Instrucciones de limpieza
+├── CONTRIBUTING.md                    # Guía de contribución
 ├── .gitignore                         # Archivos excluidos del repositorio
 ├── lab-1-stack-refactoring/           # Laboratorio 1: Stack Refactoring
 ├── modulo-2/                          # Laboratorio 2: SafeDeploy Hooks

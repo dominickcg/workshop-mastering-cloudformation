@@ -158,7 +158,7 @@ Antes de comenzar con el laboratorio, debe obtener todos los archivos necesarios
 
 2. Navegue al directorio del laboratorio:
    ```bash
-   cd workshop-mastering-cloudformation/lab-1-stack-refactoring
+   cd lab-1-stack-refactoring
    ```
 
 **Nota**: El repositorio contiene todos los archivos de código CDK, scripts y plantillas necesarios para completar este laboratorio. Los archivos incluyen:
