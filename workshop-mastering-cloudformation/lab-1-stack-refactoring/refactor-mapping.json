@@ -1,0 +1,12 @@
+[
+  {
+    "Source": {
+      "StackName": "AmberMonolithStack-{nombre-participante}",
+      "LogicalResourceId": "TableCD117FA1"
+    },
+    "Destination": {
+      "StackName": "AmberDataStack-{nombre-participante}",
+      "LogicalResourceId": "TableCD117FA1"
+    }
+  }
+]
