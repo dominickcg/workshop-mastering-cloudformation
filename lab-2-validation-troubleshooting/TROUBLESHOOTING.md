@@ -82,7 +82,7 @@ Al ejecutar `cdk deploy` en el Paso 7 (después de ejecutar `restrict-permission
 ❌  AmberMonolithStack-{nombre-participante} failed: Error: The stack named AmberMonolithStack-{nombre-participante} failed to deploy: UPDATE_ROLLBACK_COMPLETE
 ```
 
-Al revisar los eventos del Stack en la consola de CloudFormation o usando `describe-stack-events`, ve un mensaje como:
+Al revisar los eventos del Stack en la consola de CloudFormation, ve un mensaje como:
 
 ```
 CREATE_FAILED | AWS::Lambda::Function | HelloFunction...
@@ -109,7 +109,7 @@ Este error es **intencional** en el laboratorio para simular un escenario realis
 2. Use el Operation ID para filtrar únicamente los eventos fallidos (Paso 9 del laboratorio):
 
    ```bash
-   aws cloudformation describe-stack-events \
+   aws cloudformation describe-events \
      --stack-name AmberMonolithStack-{nombre-participante} \
      --operation-id <OPERATION_ID> \
      --query "StackEvents[?ResourceStatus=='CREATE_FAILED' || ResourceStatus=='UPDATE_FAILED'].[LogicalResourceId,ResourceType,ResourceStatus,ResourceStatusReason]" \
@@ -151,7 +151,7 @@ Resultado:
 None
 ```
 
-O el comando `describe-stack-events` con `--operation-id` falla con:
+O el comando `describe-events` con `--operation-id` falla con:
 
 ```
 An error occurred (ValidationError) when calling the DescribeStackEvents operation: Operation ID not found
@@ -204,7 +204,7 @@ El campo `LastOperations` solo está presente cuando el Stack ha tenido operacio
 5. Como alternativa, puede listar todos los eventos recientes sin filtrar por Operation ID:
 
    ```bash
-   aws cloudformation describe-stack-events \
+   aws cloudformation describe-events \
      --stack-name AmberMonolithStack-{nombre-participante} \
      --max-items 20 \
      --query "StackEvents[?ResourceStatus=='CREATE_FAILED' || ResourceStatus=='UPDATE_FAILED'].[Timestamp,LogicalResourceId,ResourceType,ResourceStatusReason]" \
@@ -252,7 +252,7 @@ Este estado **no impide** nuevos despliegues. Es simplemente un indicador de que
 
 **Verificación:** Después del despliegue exitoso, el estado del Stack debe cambiar a `UPDATE_COMPLETE` (verde en la consola).
 
-**Nota:** Si el Stack permanece en `UPDATE_ROLLBACK_COMPLETE` después de múltiples intentos de corrección, revise cuidadosamente los eventos del Stack usando `describe-stack-events` para identificar la causa raíz del fallo.
+**Nota:** Si el Stack permanece en `UPDATE_ROLLBACK_COMPLETE` después de múltiples intentos de corrección, revise cuidadosamente los eventos del Stack usando `describe-events` para identificar la causa raíz del fallo.
 
 ---
 

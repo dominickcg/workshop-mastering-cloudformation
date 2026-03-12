@@ -1,12 +1,12 @@
 [
   {
     "Source": {
-      "StackName": "AmberMonolithStack-dominick",
-      "LogicalResourceId": "TableCD117FA1"
+      "StackName": "AmberMonolithStack-{nombre-participante}",
+      "LogicalResourceId": "{logical-id-tabla}"
     },
     "Destination": {
-      "StackName": "AmberDataStack-dominick",
-      "LogicalResourceId": "TableCD117FA1"
+      "StackName": "AmberDataStack-{nombre-participante}",
+      "LogicalResourceId": "{logical-id-tabla}"
     }
   }
 ]

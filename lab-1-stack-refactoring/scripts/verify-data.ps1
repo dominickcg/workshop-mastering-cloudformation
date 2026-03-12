@@ -1,9 +1,12 @@
 # Script para verificar que el dato de prueba persiste después del Stack Refactoring
-# Uso: .\verify-data.ps1 -ParticipantName <nombre-participante>
+# Uso: .\verify-data.ps1 -ParticipantName <nombre-participante> [-Profile <nombre-perfil>]
 
 param(
     [Parameter(Mandatory=$true, HelpMessage="Ingrese su nombre de participante")]
-    [string]$ParticipantName
+    [string]$ParticipantName,
+    
+    [Parameter(Mandatory=$false)]
+    [string]$Profile
 )
 
 $TableName = "amber-data-$ParticipantName"
@@ -12,11 +15,21 @@ Write-Host "Verificando dato de prueba en la tabla $TableName..." -ForegroundCol
 Write-Host ""
 
 try {
-    $Result = aws dynamodb get-item `
-        --table-name $TableName `
-        --key '{\"PK\": {\"S\": \"TEST#001\"}}' `
-        --query 'Item' `
-        --output json 2>&1
+    # Construir el comando con o sin --profile según se proporcione
+    if ($Profile) {
+        $Result = aws dynamodb get-item `
+            --profile $Profile `
+            --table-name $TableName `
+            --key '{\"PK\": {\"S\": \"TEST#001\"}}' `
+            --query 'Item' `
+            --output json 2>&1
+    } else {
+        $Result = aws dynamodb get-item `
+            --table-name $TableName `
+            --key '{\"PK\": {\"S\": \"TEST#001\"}}' `
+            --query 'Item' `
+            --output json 2>&1
+    }
 
     if ($LASTEXITCODE -eq 0 -and $Result -ne "null" -and $Result) {
         Write-Host "✓ Dato encontrado:" -ForegroundColor Green

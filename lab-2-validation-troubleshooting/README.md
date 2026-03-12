@@ -717,7 +717,7 @@ graph TB
     subgraph "Flujo de Errores del Laboratorio"
         J["Early Validation<br/>Bucket nombre duplicado"] -->|"Bloquea Change Set<br/>< 10 seg"| K["Sin Rollback<br/>Stack sin cambios"]
         L["AccessDenied<br/>lambda:CreateFunction"] -->|"Falla en aprovisionamiento"| M["Rollback automático<br/>S3 Bucket eliminado"]
-        M -->|"Operation ID"| N["Troubleshooting quirúrgico<br/>describe-stack-events --operation-id"]
+        M -->|"Operation ID"| N["Troubleshooting quirúrgico<br/>describe-events --operation-id"]
     end
 
     A -->|"Lab 2"| D
@@ -743,7 +743,7 @@ En este laboratorio, has dominado dos técnicas avanzadas de CloudFormation que 
 
 - **Early Validation**: Intercepta errores de configuración durante la creación del Change Set, antes de que CloudFormation intente crear recursos físicos. Esto ahorra tiempo al detectar problemas como nombres globales duplicados en menos de 10 segundos, sin modificar la infraestructura existente ni requerir Rollback.
 
-- **Operation ID**: Permite troubleshooting quirúrgico filtrando únicamente los eventos fallidos de una operación específica. En lugar de revisar el historial completo del Stack (que puede contener cientos de eventos), el Operation ID te permite aislar la causa raíz en segundos usando `describe-stack-events --operation-id` con filtros JMESPath.
+- **Operation ID**: Permite troubleshooting quirúrgico filtrando únicamente los eventos fallidos de una operación específica. En lugar de revisar el historial completo del Stack (que puede contener cientos de eventos), el Operation ID te permite aislar la causa raíz en segundos usando `describe-events --operation-id` con filtros JMESPath.
 
 Estas técnicas son especialmente valiosas en entornos de producción donde el tiempo de resolución de problemas impacta directamente la disponibilidad del servicio.
 
