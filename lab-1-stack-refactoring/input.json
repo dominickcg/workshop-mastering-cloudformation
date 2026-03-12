@@ -1,4 +1,7 @@
-[
+{
+    "Description": "Migrar tabla - dominick",
+    "EnableStackCreation": true,
+    "ResourceMappings": [
   {
     "Source": {
       "StackName": "AmberMonolithStack-dominick",
@@ -9,4 +12,6 @@
       "LogicalResourceId": "TableCD117FA1"
     }
   }
-]
+],
+    "StackDefinitions": 
+}
