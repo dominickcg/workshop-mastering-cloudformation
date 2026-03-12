@@ -156,24 +156,24 @@ Este laboratorio demuestra cómo mover una tabla DynamoDB desde un Stack monolí
 
 ```mermaid
 graph TB
-    subgraph "Estado Inicial"
-        A[AmberMonolithStack] --> B[("DynamoDB Table<br/>amber-data-{participante}")]
+    subgraph sg1["Estado Inicial"]
+        A[AmberMonolithStack] --> B[(DynamoDB)]
     end
 
-    subgraph "Refactorización CDK"
-        C[AmberMonolithStack<br/>(vacío)]
-        D[AmberDataStack] --> E[("DynamoDB Table<br/>amber-data-{participante}")]
+    subgraph sg2["Refactorización CDK"]
+        C[AmberMonolithStack vacío]
+        D[AmberDataStack] --> E[(DynamoDB)]
     end
 
-    subgraph "Stack Refactoring"
-        F["create-stack-refactor<br/>+ refactor-mapping.json"] --> G["execute-stack-refactor"]
-        G --> H["Recurso migrado<br/>sin recreación"]
+    subgraph sg3["Stack Refactoring"]
+        F[create-stack-refactor] --> G[execute-stack-refactor]
+        G --> H[Recurso migrado]
     end
 
-    A -->|"1. cdk synth"| C
-    A -->|"1. cdk synth"| D
-    C -->|"2. CLI"| F
-    H -->|"3. cdk deploy"| I["Estado Final:<br/>AmberDataStack gestiona<br/>la tabla DynamoDB"]
+    A -->|1. cdk synth| C
+    A -->|1. cdk synth| D
+    C -->|2. CLI| F
+    H -->|3. cdk deploy| I[Estado Final]
 
     style B fill:#f9f,stroke:#333,stroke-width:2px
     style E fill:#f9f,stroke:#333,stroke-width:2px
