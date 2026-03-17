@@ -1,5 +1,6 @@
 .kiro/
 .requerimientos/
+**/lab-2-validation-troubleshooting/test/
 
 # CDK
 **/cdk.out/

@@ -1,0 +1,10 @@
+{
+  "Resources": {
+    "PlaceholderTopic": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "DisplayName": "PlaceholderTopic"
+      }
+    }
+  }
+}

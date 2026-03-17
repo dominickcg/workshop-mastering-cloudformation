@@ -2,7 +2,8 @@
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
 import { AmberMonolithStack } from '../lib/amber-monolith-stack';
-import { AmberDataStack } from '../lib/amber-data-stack';
+// Descomentar en el Paso 5 del laboratorio:
+// import { AmberDataStack } from '../lib/amber-data-stack';
 
 const app = new cdk.App();
 const participantName = app.node.tryGetContext('participantName') || 'default';
@@ -18,9 +19,10 @@ new AmberMonolithStack(app, `AmberMonolithStack-${participantName}`, {
   env,
 });
 
-new AmberDataStack(app, `AmberDataStack-${participantName}`, {
-  participantName,
-  env,
-});
+// Descomentar en el Paso 5 del laboratorio:
+// new AmberDataStack(app, `AmberDataStack-${participantName}`, {
+//   participantName,
+//   env,
+// });
 
 app.synth();

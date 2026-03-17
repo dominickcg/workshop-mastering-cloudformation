@@ -97,6 +97,136 @@ Found an action type that is not permitted during refactor operations: Modify
 
 ---
 
+### Error: "Stack Refactor does not support AWS::CDK::Metadata"
+
+**Síntoma**: Error al crear el Refactor Set indicando que el tipo de recurso `AWS::CDK::Metadata` no es soportado.
+
+**Ejemplos de mensajes de error**:
+```
+An error occurred (ValidationException) when calling the CreateStackRefactor operation:
+Stack Refactor does not support AWS::CDK::Metadata
+```
+
+**Causa**: Las plantillas de CloudFormation contienen un recurso `CDKMetadata` de tipo `AWS::CDK::Metadata` que CDK genera automáticamente para telemetría. Stack Refactoring no soporta este tipo de recurso.
+
+**Solución**:
+
+1. Verifique que `cdk.json` incluye `"versionReporting": false`:
+   ```bash
+   cat cdk-app/cdk.json | grep versionReporting
+   ```
+   Debe mostrar: `"versionReporting": false`
+
+2. Si no está presente, agréguelo como propiedad de primer nivel en `cdk.json`:
+   ```json
+   {
+     "app": "npx ts-node --prefer-ts-exts bin/amber-app.ts",
+     "versionReporting": false,
+     ...
+   }
+   ```
+
+3. Regenere las plantillas con `cdk synth`:
+   ```bash
+   cdk synth -c participantName=<su-nombre> --profile <nombre-perfil>
+   ```
+
+4. Vuelva a limpiar las plantillas con los scripts de limpieza (Paso 5.5)
+
+**Nota**: El repositorio del workshop ya incluye `"versionReporting": false` en `cdk.json`. Este error solo ocurre si alguien modifica accidentalmente esta configuración.
+
+---
+
+### Error: "Parameter values specified for a template which does not require them"
+
+**Síntoma**: Error al crear el Refactor Set indicando que se especificaron valores de parámetros para una plantilla que no los requiere.
+
+**Ejemplos de mensajes de error**:
+```
+An error occurred (ValidationException) when calling the CreateStackRefactor operation:
+Parameter values specified for a template which does not require them
+```
+
+**Causa**: Se intentó usar una plantilla sin sección `Parameters` para un stack que ya tiene `Parameters` desplegados, o viceversa. Esto puede ocurrir si se limpia la plantilla del stack source (ya desplegado) removiendo sus `Parameters` y `Rules`.
+
+**Solución**:
+
+1. Use los scripts de limpieza del repositorio (`clean-cdk-template.sh` o `clean-cdk-template.ps1`) que manejan ambos casos correctamente
+2. Regenere las plantillas limpias siguiendo el Paso 5.5 del laboratorio
+3. Cree un nuevo Refactor Set con las plantillas limpias
+
+**Nota técnica**: La plantilla del stack source (MonolithStack, ya desplegado) puede usarse tal cual porque sus `Parameters` y `Rules` ya están desplegados. Sin embargo, los scripts de limpieza eliminan estas secciones de ambas plantillas para simplificar el proceso, y esto funciona correctamente.
+
+---
+
+### Error: "Could not find any source stacks for Logical ID and Stack ID pairs"
+
+**Síntoma**: Error al crear el Refactor Set indicando que no se encontraron stacks de origen para ciertos Logical IDs.
+
+**Ejemplos de mensajes de error**:
+```
+An error occurred (ValidationException) when calling the CreateStackRefactor operation:
+Could not find any source stacks for Logical ID and Stack ID pairs: PlaceholderTopic -> AmberMonolithStack-nombre
+```
+
+**Causa**: La plantilla del stack source no contiene un recurso que sí existe en el stack desplegado. Esto ocurre cuando el PlaceholderTopic (SNS Topic) no está incluido en la plantilla source.
+
+**Solución**:
+
+1. Verifique que el archivo `amber-monolith-stack.ts` contiene el PlaceholderTopic:
+   ```typescript
+   new sns.Topic(this, 'PlaceholderTopic', {
+     displayName: `amber-placeholder-${props.participantName}`,
+   });
+   ```
+
+2. Si el PlaceholderTopic no está en el código, agréguelo (ya está incluido en el código original del repositorio)
+
+3. Regenere las plantillas con `cdk synth` y vuelva a limpiarlas (Paso 5.5)
+
+4. Verifique que la plantilla limpia del MonolithStack contiene el PlaceholderTopic:
+   ```bash
+   cat AmberMonolithStack-<su-nombre>-clean.template.json | grep PlaceholderTopic
+   ```
+
+**Nota**: El PlaceholderTopic es necesario porque CloudFormation no permite stacks vacíos. Cuando la tabla DynamoDB se mueve al DataStack, el MonolithStack necesita al menos un recurso (el PlaceholderTopic) para permanecer válido.
+
+---
+
+### Error: BOM en plantillas JSON generadas con PowerShell
+
+**Síntoma**: Error de parsing JSON al usar plantillas generadas con PowerShell en comandos de CloudFormation.
+
+**Ejemplos de mensajes de error**:
+```
+An error occurred (ValidationException) when calling the CreateStackRefactor operation:
+Template format error: JSON not well-formed
+```
+
+**Causa**: PowerShell 5.1 (incluido en Windows 10/11) agrega un BOM (Byte Order Mark) al inicio de archivos UTF-8 cuando se usa `Out-File -Encoding UTF8`. El BOM es un carácter invisible (`\xEF\xBB\xBF`) que precede al `{` del JSON, causando que CloudFormation no pueda parsear el archivo.
+
+**Solución**:
+
+1. Use el script `clean-cdk-template.ps1` actualizado del repositorio, que ya corrige este problema usando `[System.IO.File]::WriteAllText()` sin BOM
+
+2. Si generó plantillas con una versión anterior del script, regenere las plantillas limpias:
+   ```powershell
+   .\scripts\clean-cdk-template.ps1 -TemplatePath cdk-app\cdk.out\AmberMonolithStack-<su-nombre>.template.json
+   .\scripts\clean-cdk-template.ps1 -TemplatePath cdk-app\cdk.out\AmberDataStack-<su-nombre>.template.json
+   ```
+
+3. Verifique que el archivo no tiene BOM (en PowerShell):
+   ```powershell
+   $bytes = [System.IO.File]::ReadAllBytes("AmberDataStack-<su-nombre>-clean.template.json")
+   if ($bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) {
+       Write-Output "ERROR: El archivo tiene BOM"
+   } else {
+       Write-Output "OK: Sin BOM"
+   }
+   ```
+
+---
+
 ### Error: Sintaxis JSON inválida en refactor-mapping.json
 
 **Síntoma**: Error al crear el Refactor Set con mensaje de JSON inválido.

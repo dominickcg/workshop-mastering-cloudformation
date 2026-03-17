@@ -294,6 +294,8 @@ Una vez clonado el repositorio, continúe con el Paso 1 para verificar la regió
 
    Este comando instalará AWS CDK v2 y todas las dependencias necesarias.
 
+**Nota sobre configuración de CDK**: El archivo `cdk.json` del proyecto incluye la configuración `"versionReporting": false`. Esta configuración desactiva la generación del recurso `AWS::CDK::Metadata` en las plantillas de CloudFormation, lo cual es necesario porque Stack Refactoring no soporta este tipo de recurso. Sin esta configuración, el comando `create-stack-refactor` fallaría con el error "Stack Refactor does not support AWS::CDK::Metadata". Esta configuración ya está incluida en el repositorio y no requiere acción por parte del participante.
+
 ### Paso 3: Desplegar el Stack monolítico
 
 1. Sintetice la plantilla de CloudFormation:
@@ -443,6 +445,7 @@ En este paso, modificaremos el código CDK para mover la tabla DynamoDB hacia un
    ```typescript
    import * as cdk from 'aws-cdk-lib';
    import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+   import * as sns from 'aws-cdk-lib/aws-sns';
    import { Construct } from 'constructs';
 
    interface AmberMonolithStackProps extends cdk.StackProps {
@@ -455,13 +458,50 @@ En este paso, modificaremos el código CDK para mover la tabla DynamoDB hacia un
 
        // Tabla DynamoDB movida a AmberDataStack en el Paso 5
        // (comentada o eliminada)
+
+       // Recurso placeholder para evitar que el Stack quede vacío después del Stack Refactoring
+       new sns.Topic(this, 'PlaceholderTopic', {
+         displayName: `amber-placeholder-${props.participantName}`,
+       });
      }
    }
    ```
 
+   **Nota sobre el PlaceholderTopic**: CloudFormation no permite Stacks vacíos. El PlaceholderTopic (SNS Topic) mantiene el AmberMonolithStack con al menos un recurso después de mover la tabla DynamoDB al AmberDataStack. Este recurso ya existe en el código original y NO debe eliminarse.
+
 6. Guarde el archivo `lib/amber-monolith-stack.ts`.
 
-7. Verifique que el archivo `bin/amber-app.ts` quedó así después de descomentar en el punto 3:
+7. Abra el archivo `lib/amber-data-stack.ts` en su editor de texto.
+
+8. Descomente el bloque de la tabla DynamoDB que está comentado. Busque las líneas comentadas que comienzan con `// new dynamodb.Table(this, 'Table', {` y descoméntelas.
+
+   El archivo `lib/amber-data-stack.ts` debe quedar así después de descomentar:
+   ```typescript
+   import * as cdk from 'aws-cdk-lib';
+   import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+   import { Construct } from 'constructs';
+
+   interface AmberDataStackProps extends cdk.StackProps {
+     participantName: string;
+   }
+
+   export class AmberDataStack extends cdk.Stack {
+     constructor(scope: Construct, id: string, props: AmberDataStackProps) {
+       super(scope, id, props);
+
+       // Tabla DynamoDB migrada desde AmberMonolithStack via Stack Refactoring
+       new dynamodb.Table(this, 'Table', {
+         tableName: `amber-data-${props.participantName}`,
+         partitionKey: { name: 'PK', type: dynamodb.AttributeType.STRING },
+         removalPolicy: cdk.RemovalPolicy.RETAIN,
+       });
+     }
+   }
+   ```
+
+9. Guarde el archivo `lib/amber-data-stack.ts`.
+
+10. Verifique que el archivo `bin/amber-app.ts` quedó así después de descomentar en el punto 3:
    ```typescript
    #!/usr/bin/env node
    import 'source-map-support/register';
@@ -478,26 +518,20 @@ En este paso, modificaremos el código CDK para mover la tabla DynamoDB hacia un
      region: process.env.CDK_DEFAULT_REGION,
    };
 
-   // Usar LegacyStackSynthesizer para evitar secciones Rules y Parameters
-   // Esto es necesario para Stack Refactoring con --enable-stack-creation
-   const synthesizer = new cdk.LegacyStackSynthesizer();
-
    new AmberMonolithStack(app, `AmberMonolithStack-${participantName}`, {
      participantName,
      env,
-     synthesizer,
    });
 
    new AmberDataStack(app, `AmberDataStack-${participantName}`, {
      participantName,
      env,
-     synthesizer,
    });
 
    app.synth();
    ```
 
-8. Guarde el archivo `bin/amber-app.ts` si realizó cambios.
+11. Guarde el archivo `bin/amber-app.ts` si realizó cambios.
 
 **✓ Verificación**: Confirme que el código fue refactorizado correctamente revisando los archivos modificados.
 
@@ -548,16 +582,18 @@ Ambos comandos deben confirmar que los archivos existen (Bash muestra los nombre
 
 ##### ¿Por qué necesitamos limpiar las plantillas?
 
-AWS CDK genera plantillas de CloudFormation con secciones adicionales que son útiles para el despliegue normal con CDK, pero que CloudFormation Stack Refactoring interpreta como "modificaciones" no permitidas:
+AWS CDK genera plantillas de CloudFormation con secciones adicionales que son útiles para el despliegue normal con CDK, pero que CloudFormation Stack Refactoring no permite en stacks nuevos creados con `--enable-stack-creation`:
 
-1. **CDKMetadata**: Recurso de tipo `AWS::CDK::Metadata` que CDK agrega automáticamente para telemetría y análisis
-2. **Conditions**: Sección con condiciones como `CDKMetadataAvailable` que controlan la creación de recursos CDK
-3. **Parameters**: Parámetros como `BootstrapVersion` que CDK usa para validar compatibilidad con el Bootstrap Stack
-4. **Rules**: Reglas como `CheckBootstrapVersion` que validan versiones de CDK
+1. **Parameters**: Parámetros como `BootstrapVersion` que CDK usa para validar compatibilidad con el Bootstrap Stack
+2. **Rules**: Reglas como `CheckBootstrapVersion` que validan versiones de CDK
 
-**Restricción de Stack Refactoring**: Cuando se usa `--enable-stack-creation`, CloudFormation Stack Refactoring SOLO permite cambios en la sección `Resources` relacionados con la migración de recursos. Cualquier cambio en `Parameters`, `Conditions`, `Rules` o recursos no relacionados con la migración causa el error "Found an action type that is not permitted during refactor operations: Modify".
+**Nota técnica**: El archivo `cdk.json` del repositorio incluye `"versionReporting": false`, lo que desactiva la generación del recurso `AWS::CDK::Metadata` y la sección `Conditions`. Sin esta configuración, CDK generaría un recurso `CDKMetadata` que Stack Refactoring rechaza con el error "Stack Refactor does not support AWS::CDK::Metadata". Gracias a esta configuración, las plantillas CDK solo contienen `Parameters` y `Rules` como secciones adicionales.
 
-**Solución**: Crear plantillas "limpias" que contengan ÚNICAMENTE la sección `Resources` con los recursos de aplicación (tabla DynamoDB), eliminando todas las secciones problemáticas.
+**Restricción de Stack Refactoring**: Cuando se usa `--enable-stack-creation` para crear un stack nuevo (AmberDataStack), CloudFormation Stack Refactoring SOLO permite cambios en la sección `Resources` relacionados con la migración de recursos. Cualquier cambio en `Parameters` o `Rules` en el stack de destino causa el error "Found an action type that is not permitted during refactor operations: Modify".
+
+**Nota sobre la plantilla source (MonolithStack)**: Técnicamente, la plantilla del stack de origen (ya desplegado) puede usarse tal cual porque sus `Parameters` y `Rules` ya están desplegados y no representan cambios. Sin embargo, para simplificar el proceso, limpiamos ambas plantillas con el mismo script.
+
+**Solución**: Crear plantillas "limpias" que contengan ÚNICAMENTE la sección `Resources` con los recursos de aplicación, eliminando `Parameters` y `Rules`.
 
 ##### Instrucciones de Limpieza
 
@@ -728,7 +764,7 @@ La plantilla NO debe contener:
 **Contenido esperado de AmberMonolithStack-<su-nombre>-clean.template.json**:
 
 La plantilla limpia del Stack de origen debe contener:
-- **Sección `Resources`**: Vacía (`{}`) o sin la definición de la tabla DynamoDB
+- **Sección `Resources`**: Con el recurso PlaceholderTopic (SNS Topic) que mantiene el Stack no-vacío
 
 La plantilla NO debe contener:
 - Recurso `CDKMetadata`
@@ -739,13 +775,20 @@ La plantilla NO debe contener:
 **Ejemplo de estructura correcta**:
 ```json
 {
-  "Resources": {}
+  "Resources": {
+    "PlaceholderTopicDEB30157": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "DisplayName": "amber-placeholder-<su-nombre>"
+      }
+    }
+  }
 }
 ```
 
 **¿Por qué esta estructura es necesaria?**
 
-CloudFormation Stack Refactoring con `--enable-stack-creation` valida estrictamente que las plantillas contengan SOLO cambios relacionados con la migración de recursos. Cualquier sección adicional (`Conditions`, `Parameters`, `Rules`) o recursos no relacionados (`CDKMetadata`) se interpretan como "modificaciones no permitidas" y causan el error:
+CloudFormation Stack Refactoring con `--enable-stack-creation` valida estrictamente que las plantillas del stack de destino contengan SOLO cambios relacionados con la migración de recursos. Secciones adicionales (`Parameters`, `Rules`) se interpretan como "modificaciones no permitidas" y causan el error:
 
 ```
 Found an action type that is not permitted during refactor operations: Modify
@@ -755,7 +798,7 @@ Al usar plantillas limpias con SOLO la sección `Resources`, garantizamos que Cl
 
 **✓ Verificación visual**: Abra las plantillas limpias en su editor de texto y confirme que:
 1. AmberDataStack-<su-nombre>-clean.template.json contiene SOLO `Resources` con la tabla DynamoDB
-2. AmberMonolithStack-<su-nombre>-clean.template.json contiene SOLO `Resources` vacío o sin tabla
+2. AmberMonolithStack-<su-nombre>-clean.template.json contiene SOLO `Resources` con el PlaceholderTopic (SNS Topic)
 3. Ninguna plantilla contiene `CDKMetadata`, `Conditions`, `Parameters` o `Rules`
 
 Una vez confirmado el contenido correcto de las plantillas limpias, puede continuar con el Paso 6 para extraer los Logical IDs.
@@ -1253,13 +1296,17 @@ Finalmente, ejecutaremos `cdk deploy` para confirmar que CDK reconoce la nueva e
 
 ```
 AmberMonolithStack-<su-nombre>: no changes
-AmberDataStack-<su-nombre>: no changes
+AmberDataStack-<su-nombre>: deploying...
+ ✅  AmberDataStack-<su-nombre>
 ```
+
+**Nota**: Es normal que CDK actualice el AmberDataStack. Esto ocurre porque el stack fue creado durante el Stack Refactoring con una plantilla "limpia" (solo la sección `Resources`), y CDK ahora sincroniza su plantilla completa que incluye secciones adicionales como `Parameters` y `Rules`. Lo importante es que la tabla DynamoDB NO se recrea y los datos persisten intactos.
 
 **Explicación**: CDK no intenta recrear la tabla DynamoDB porque:
 1. El Stack Refactoring ya transfirió la gestión del recurso físico a AmberDataStack
 2. La definición del recurso en el código CDK coincide con el estado actual en AWS
 3. El Physical ID de la tabla permanece sin cambios
+4. CDK reconcilia el estado entre su plantilla y el estado real en AWS, detectando que la tabla ya existe con la configuración correcta
 
 **✓ Verificación final**: Confirme el estado de ambos Stacks:
 

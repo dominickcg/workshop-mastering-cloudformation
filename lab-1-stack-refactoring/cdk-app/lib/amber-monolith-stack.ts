@@ -1,5 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as sns from 'aws-cdk-lib/aws-sns';
 import { Construct } from 'constructs';
 
 interface AmberMonolithStackProps extends cdk.StackProps {
@@ -10,20 +11,17 @@ export class AmberMonolithStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: AmberMonolithStackProps) {
     super(scope, id, props);
 
-    // ⚠️ IMPORTANTE: Esta tabla DynamoDB fue movida a AmberDataStack
-    // 
-    // La tabla permanece comentada porque:
-    // - Ya existe en el stack AmberDataStack desplegado en el Paso 5
-    // - Descomentar causaría un conflicto de recursos duplicados
-    // - NO debe descomentarse en ningún paso de este laboratorio
-    //
-    // La tabla existente será importada usando Fn::ImportValue en los stacks
-    // que la necesiten (ver AmberComputeStack y AmberNetworkStack)
-    
-    // new dynamodb.Table(this, 'Table', {
-    //   tableName: `amber-data-${props.participantName}`,
-    //   partitionKey: { name: 'PK', type: dynamodb.AttributeType.STRING },
-    //   removalPolicy: cdk.RemovalPolicy.RETAIN,
-    // });
+    // Tabla DynamoDB - En el Paso 5 del laboratorio, debe comentar este bloque
+    // y descomentarlo en amber-data-stack.ts para mover la tabla al nuevo Stack
+    new dynamodb.Table(this, 'Table', {
+      tableName: `amber-data-${props.participantName}`,
+      partitionKey: { name: 'PK', type: dynamodb.AttributeType.STRING },
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
+    });
+
+    // Recurso placeholder para evitar que el Stack quede vacío después del Stack Refactoring
+    new sns.Topic(this, 'PlaceholderTopic', {
+      displayName: `amber-placeholder-${props.participantName}`,
+    });
   }
 }

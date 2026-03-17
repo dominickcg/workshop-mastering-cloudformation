@@ -83,8 +83,10 @@ try {
     # Convertir a JSON con profundidad adecuada
     $cleanJson = $template | ConvertTo-Json -Depth 10
 
-    # Guardar el archivo limpio
-    $cleanJson | Out-File -FilePath $outputPath -Encoding UTF8
+    # Guardar el archivo limpio (sin BOM para compatibilidad con CloudFormation)
+    # PowerShell 5.1 Out-File -Encoding UTF8 agrega BOM que puede causar errores
+    $outputFullPath = Join-Path -Path (Get-Location) -ChildPath $outputPath
+    [System.IO.File]::WriteAllText($outputFullPath, $cleanJson, (New-Object System.Text.UTF8Encoding $false))
 
     # Validar que el JSON de salida es valido
     try {
